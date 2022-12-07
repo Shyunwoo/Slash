@@ -18,8 +18,24 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+	UFUNCTION(BlueprintPure)
+	float TransformedSin();
 
-	
+	UFUNCTION(BlueprintPure)
+	float TransformedCos();
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Sine Parameters")
+	float Amplitude=0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Sine Parameters")
+	float TimeConstant=5.f;
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta=(AllowPrivateAccess="true"))
+	float RunningTime;
+
+	UPROPERTY(VisibleAnywhere)
+	UStaticMeshComponent* ItemMesh;
 
 };
+
