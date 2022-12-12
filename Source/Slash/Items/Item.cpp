@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Slash/Characters/SlashCharacter.h"
+#include "NiagaraComponent.h"
 
 AItem::AItem()
 {
@@ -14,8 +15,20 @@ AItem::AItem()
 	ItemSkeletalMesh=CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ItemMeshComponent"));
 	RootComponent=ItemSkeletalMesh;
 
+	ItemSkeletalMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	ItemSkeletalMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	ItemStaticMesh=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemStaticMesh"));
+	ItemStaticMesh->SetupAttachment(GetRootComponent());
+
+	ItemStaticMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	ItemStaticMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
 	Sphere->SetupAttachment(GetRootComponent());
+
+	EmbersEffect=CreateDefaultSubobject<UNiagaraComponent>(TEXT("Embers"));
+	EmbersEffect->SetupAttachment(GetRootComponent());
 }
 
 void AItem::BeginPlay()

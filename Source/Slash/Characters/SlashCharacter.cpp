@@ -9,7 +9,7 @@
 #include "Slash/Items/Weapons/Weapon.h"
 #include "Animation/AnimMontage.h"
 #include "Components/BoxComponent.h"
-
+ 
 ASlashCharacter::ASlashCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -31,7 +31,8 @@ ASlashCharacter::ASlashCharacter()
 void ASlashCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	Tags.Add(FName("SlashCharacter"));	
 }
 
 void ASlashCharacter::MoveForward(float Value)
@@ -79,7 +80,8 @@ void ASlashCharacter::EKeyPressed()
 	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);
 	if(OverlappingWeapon)
 	{
-		OverlappingWeapon->Equip(GetMesh(), FName("hand_rSocket"));
+		OverlappingWeapon->Equip(GetMesh(), FName("hand_rSocket"), this, this);
+	
 		CharacterState=ECharacterState::ECS_EquippedOneHandedWeapon;
 		OverlappingItem=nullptr;
 		EquippedWeapon=OverlappingWeapon;
@@ -103,6 +105,8 @@ void ASlashCharacter::EKeyPressed()
 
 void ASlashCharacter::Attack()
 {
+	Super::Attack();
+
 	if(CanAttack())
 	{
 		PlayAttackMontage();
@@ -113,6 +117,8 @@ void ASlashCharacter::Attack()
 
 void ASlashCharacter::PlayAttackMontage()
 {
+	Super::PlayAttackMontage();
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if(AnimInstance&&AttackMontage)
 	{
@@ -216,15 +222,3 @@ void ASlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction(FName("Equip"), IE_Pressed, this, &ASlashCharacter::EKeyPressed);
 	PlayerInputComponent->BindAction(FName("Attack"), IE_Pressed, this, &ASlashCharacter::Attack);
 }
-
-void ASlashCharacter::SetWeaponCollisionEnabled(ECollisionEnabled::Type CollisionEnabled)
-{
-	if(EquippedWeapon&&EquippedWeapon->GetWeaponBox())
-	{
-		EquippedWeapon->GetWeaponBox()->SetCollisionEnabled(CollisionEnabled);
-		EquippedWeapon->IgnoreActors.Empty();
-	}
-
-}
-
-
