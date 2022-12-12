@@ -8,11 +8,10 @@
 #include "Slash/Items/Item.h"
 #include "Slash/Items/Weapons/Weapon.h"
 #include "Animation/AnimMontage.h"
-#include "Components/BoxComponent.h"
  
 ASlashCharacter::ASlashCharacter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	bUseControllerRotationPitch=false;
 	bUseControllerRotationYaw=false;
@@ -20,6 +19,12 @@ ASlashCharacter::ASlashCharacter()
 	
 	GetCharacterMovement()->bOrientRotationToMovement=true;
 	GetCharacterMovement()->RotationRate=FRotator(0.f, 400.f, 0.f);
+
+	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	GetMesh()->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
+	GetMesh()->SetGenerateOverlapEvents(true);
 
 	CameraBoom=CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetRootComponent());
@@ -32,7 +37,7 @@ void ASlashCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Tags.Add(FName("SlashCharacter"));	
+	Tags.Add(FName("EngageableTarget"));	
 }
 
 void ASlashCharacter::MoveForward(float Value)
@@ -80,25 +85,17 @@ void ASlashCharacter::EKeyPressed()
 	AWeapon* OverlappingWeapon = Cast<AWeapon>(OverlappingItem);
 	if(OverlappingWeapon)
 	{
-		OverlappingWeapon->Equip(GetMesh(), FName("hand_rSocket"), this, this);
-	
-		CharacterState=ECharacterState::ECS_EquippedOneHandedWeapon;
-		OverlappingItem=nullptr;
-		EquippedWeapon=OverlappingWeapon;
+		EquipWeapon(OverlappingWeapon);
 	}
 	else
 	{	
 		if(CanDisarm())
 		{
-			PlayEquipMontage();
-			CharacterState=ECharacterState::ECS_Unequipped;
-			ActionState=EActionState::EAS_EquippingWeapon;
+			Disarm();
 		}
 		else if(CanArm())
 		{
-			PlayUnEquipMontage();
-			CharacterState=ECharacterState::ECS_EquippedOneHandedWeapon;
-			ActionState=EActionState::EAS_EquippingWeapon;
+			Arm();
 		}
 	}
 }
@@ -115,32 +112,12 @@ void ASlashCharacter::Attack()
 
 }
 
-void ASlashCharacter::PlayAttackMontage()
+void ASlashCharacter::EquipWeapon(class AWeapon* Weapon)
 {
-	Super::PlayAttackMontage();
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if(AnimInstance&&AttackMontage)
-	{
-		AnimInstance->Montage_Play(AttackMontage);
-		const int32 Selection=FMath::RandRange(0,2);
-		FName SectionName = FName();
-		switch(Selection)
-		{
-		case 0:
-			SectionName=FName("Combo1");
-		break;
-		case 1:
-			SectionName=FName("Combo2");
-		break;
-		case 2:
-			SectionName=FName("Combo4");
-		break;
-		default:
-		break;
-		}
-		AnimInstance->Montage_JumpToSection(SectionName, AttackMontage);
-	}
+	Weapon->Equip(GetMesh(), FName("hand_rSocket"), this, this);
+	CharacterState=ECharacterState::ECS_EquippedOneHandedWeapon;
+	OverlappingItem=nullptr;
+	EquippedWeapon=Weapon;
 }
 
 void ASlashCharacter::AttackEnd()
@@ -184,13 +161,27 @@ bool ASlashCharacter::CanArm()
 
 void ASlashCharacter::Disarm()
 {
+	PlayEquipMontage();
+	CharacterState=ECharacterState::ECS_Unequipped;
+	ActionState=EActionState::EAS_EquippingWeapon;
+}
+
+void ASlashCharacter::Arm()
+{
+	PlayUnEquipMontage();
+	CharacterState=ECharacterState::ECS_EquippedOneHandedWeapon;
+	ActionState=EActionState::EAS_EquippingWeapon;
+}
+
+void ASlashCharacter::AttachWeaponToBack()
+{
 	if(EquippedWeapon)
 	{
 		EquippedWeapon->AttachMeshToSocket(GetMesh(), FName("SpineSocket"));
 	}
 }
 
-void ASlashCharacter::Arm()
+void ASlashCharacter::AttachWeaponToHand()
 {
 	if(EquippedWeapon)
 	{
@@ -203,10 +194,9 @@ void ASlashCharacter::FinishEquipping()
 	ActionState=EActionState::EAS_Unoccupied;
 }
 
-void ASlashCharacter::Tick(float DeltaTime)
+void ASlashCharacter::HitReactEnd()
 {
-	Super::Tick(DeltaTime);
-
+	ActionState=EActionState::EAS_Unoccupied;
 }
 
 void ASlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -221,4 +211,18 @@ void ASlashCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction(FName("Jump"), IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction(FName("Equip"), IE_Pressed, this, &ASlashCharacter::EKeyPressed);
 	PlayerInputComponent->BindAction(FName("Attack"), IE_Pressed, this, &ASlashCharacter::Attack);
+}
+
+void ASlashCharacter::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
+{
+	Super::GetHit_Implementation(ImpactPoint, Hitter);
+
+	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+	ActionState=EActionState::EAS_HitReaction;
+}
+
+float ASlashCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+{
+	HandleDamage(DamageAmount);
+	return DamageAmount;
 }

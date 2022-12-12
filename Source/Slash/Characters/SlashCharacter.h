@@ -15,21 +15,20 @@ class SLASH_API ASlashCharacter : public ABaseCharacter
 
 public:
 	ASlashCharacter();
-	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)override;
 
 protected:
 	virtual void BeginPlay() override;
 
-protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void Turn(float Value);
 	void LookUp(float Value);
 	void EKeyPressed();
 	virtual void Attack() override;
-
-	virtual void PlayAttackMontage() override;
+	void EquipWeapon(class AWeapon* Weapon);
 
 	virtual void AttackEnd() override;
 	virtual bool CanAttack() override;
@@ -38,15 +37,20 @@ protected:
 	void PlayUnEquipMontage();
 	bool CanDisarm();
 	bool CanArm();
-
-	UFUNCTION(BlueprintCallable)
 	void Disarm();
-
-	UFUNCTION(BlueprintCallable)
 	void Arm();
 
 	UFUNCTION(BlueprintCallable)
+	void AttachWeaponToBack();
+
+	UFUNCTION(BlueprintCallable)
+	void AttachWeaponToHand();
+
+	UFUNCTION(BlueprintCallable)
 	void FinishEquipping();
+
+	UFUNCTION(BlueprintCallable)
+	void HitReactEnd();
 
 private:
 	ECharacterState CharacterState=ECharacterState::ECS_Unequipped;

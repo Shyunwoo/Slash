@@ -21,12 +21,27 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	virtual void Attack();
 	virtual void Die();
+	bool IsAlive();
 
 	void PlayHitReactMontage(const FName& SectionName);
 	virtual void DirectionalHitReact(const FVector& ImpactPoint);
-	virtual void PlayAttackMontage();
+	void SpawnHitParticle(const FVector& ImpactPoint);
+	virtual void HandleDamage(float DamageAmount);
+	void PlayMontageSection(class UAnimMontage* Montage, const FName& SectionName);
+	int32 PlayRandomMontageSection(UAnimMontage* Montage, TArray<FName>& SectionNames);
+	virtual int32 PlayAttackMontage();
+	virtual int32 PlayDeathMontage();
+	void DisableCapsule();
+	void StopAttackMontage();
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetTranslationWarpTarget();
+
+	UFUNCTION(BlueprintCallable)
+	FVector GetRotationWarpTarget();
 
 	UFUNCTION(BlueprintCallable)
 	virtual void AttackEnd();
@@ -37,17 +52,30 @@ protected:
 	class AWeapon* EquippedWeapon;
 
 	UPROPERTY(EditDefaultsOnly, Category=Montages)
-	class UAnimMontage* AttackMontage;
+	UAnimMontage* AttackMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category=Montages)
-	class UAnimMontage* HitReactMontage;
+	UAnimMontage* HitReactMontage;
 
 	UPROPERTY(EditDefaultsOnly, Category=Montages)
-	class UAnimMontage* DeathMontage;
+	UAnimMontage* DeathMontage;
+
+	UPROPERTY(EditAnywhere, Category= Combat)
+	TArray<FName> AttackMontageSections;
+
+	UPROPERTY(EditAnywhere, Category= Combat)
+	TArray<FName> DeathMontageSections;
 
 	UPROPERTY(VisibleAnywhere)
 	class UAttributeComponent* Attributes;
 
+	UPROPERTY(BlueprintReadOnly, Category=Combat)
+	AActor* CombatTarget;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	double WarpTargetDistance=100.f;
+
+private:
 	UPROPERTY(EditAnywhere, Category=VisualEffects)
 	UParticleSystem* HitParticles;
 };
