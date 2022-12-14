@@ -9,6 +9,7 @@
 #include "AIController.h"
 #include "Perception/PawnSensingComponent.h"
 #include "Slash/Items/Weapons/Weapon.h"
+#include "Slash/Items/Soul.h"
 
 AEnemy::AEnemy()
 {
@@ -48,21 +49,23 @@ void AEnemy::BeginPlay()
 
 void AEnemy::Die()
 {
+	Super::Die();
+
 	EnemyState=EEnemyState::EES_Dead;
-	PlayDeathMontage();
 	ClearAttackTimer();
 	HideHealthBar();
 	DisableCapsule();
 	SetLifeSpan(DeathLifeSpan);
 	GetCharacterMovement()->bOrientRotationToMovement=false;
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+	SpawnSoul();
 }
 
 void AEnemy::Attack()
 {
-	EnemyState=EEnemyState::EES_Engaged;
 	Super::Attack();
-
+	if(CombatTarget==nullptr) return;
+	EnemyState=EEnemyState::EES_Engaged;
 	PlayAttackMontage();
 }
 
@@ -87,18 +90,6 @@ void AEnemy::HandleDamage(float DamageAmount)
 	}
 }
 
-int32 AEnemy::PlayDeathMontage()
-{
-	const int32 Selection=Super::PlayDeathMontage();
-	TEnumAsByte<EDeathPose> Pose(Selection);
-	if(Pose<EDeathPose::EDP_MAX)
-	{
-		DeathPose=Pose;
-	}
-
-	return Selection;
-}
-
 void AEnemy::AttackEnd()
 {
 	EnemyState = EEnemyState::EES_NoState;
@@ -120,7 +111,7 @@ void AEnemy::MoveToTarget(AActor* Target)
 
 	FAIMoveRequest MoveRequest;
 	MoveRequest.SetGoalActor(Target);
-	MoveRequest.SetAcceptanceRadius(50.f);
+	MoveRequest.SetAcceptanceRadius(AcceptanceRadius);
 	EnemyController->MoveTo(MoveRequest);
 }
 
@@ -304,6 +295,21 @@ void AEnemy::InitializeEnemy()
 	SpawnDefaultWeapon();
 }
 
+void AEnemy::SpawnSoul()
+{
+	UWorld* World=GetWorld();
+	if(World && SoulClass && Attributes)
+	{
+		const FVector SpawnLocation=GetActorLocation()+FVector(0.f, 0.f, 125.f);
+		ASoul* SpawnedSoul = World->SpawnActor<ASoul>(SoulClass, SpawnLocation, GetActorRotation());
+		if(SpawnedSoul)
+		{
+			SpawnedSoul->SetSouls(Attributes->GetSouls());
+			SpawnedSoul->SetOwner(this);
+		}
+	}
+}
+
 void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -327,7 +333,15 @@ void AEnemy::GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter)
 	ClearPatrolTimer();
 	ClearAttackTimer();
 	SetWeaponCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	StopAttackMontage();
+	if(IsInsideAttackRadius())
+	{
+		if(!IsDead())
+		{
+			StartAttackTimer();
+		}
+	}
 }
 
 void AEnemy::PatrolTimerFinished()

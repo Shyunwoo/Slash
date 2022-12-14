@@ -40,14 +40,23 @@ bool ABaseCharacter::IsAlive()
 	return Attributes&&Attributes->IsAlive();
 }
 
+void ABaseCharacter::DisableMeshCollision()
+{
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
 void ABaseCharacter::Attack()
 {
-	
+	if(CombatTarget && CombatTarget->ActorHasTag(FName("Dead")))
+	{
+		CombatTarget=nullptr;
+	}
 }
 
 void ABaseCharacter::Die()
 {
-	
+	Tags.Add(FName("Dead"));
+	PlayDeathMontage();
 }
 
 void ABaseCharacter::PlayHitReactMontage(const FName& SectionName)
@@ -100,7 +109,18 @@ int32 ABaseCharacter::PlayAttackMontage()
 
 int32 ABaseCharacter::PlayDeathMontage()
 {
-	return PlayRandomMontageSection(DeathMontage, DeathMontageSections);
+	const int32 Selection=PlayRandomMontageSection(DeathMontage, DeathMontageSections);
+	TEnumAsByte<EDeathPose> Pose(Selection);
+	if(Pose<EDeathPose::EDP_MAX)
+	{
+		DeathPose=Pose;
+	}
+	return Selection;
+}
+
+void ABaseCharacter::PlayDegeMontage()
+{
+	PlayMontageSection(DodgeMontage, FName("Default"));
 }
 
 void ABaseCharacter::DisableCapsule()
@@ -182,6 +202,11 @@ void ABaseCharacter::AttackEnd()
 bool ABaseCharacter::CanAttack()
 {
 	return false;
+}
+
+void ABaseCharacter::DodgeEnd()
+{
+	
 }
 
 void ABaseCharacter::Tick(float DeltaTime)

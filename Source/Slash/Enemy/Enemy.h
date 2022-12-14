@@ -30,7 +30,6 @@ protected:
 	virtual void Attack() override;
 	virtual bool CanAttack() override;
 	virtual void HandleDamage(float DamageAmount) override;
-	virtual int32 PlayDeathMontage() override;
 	virtual void AttackEnd() override;
 
 	bool InTargetRange(AActor* Target, double Radius);
@@ -42,10 +41,7 @@ protected:
 	UFUNCTION()
 	void PawnSeen(APawn* SeenPawn);
 
-	UPROPERTY(BlueprintReadOnly)
-	TEnumAsByte<EDeathPose> DeathPose;
-
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	EEnemyState EnemyState= EEnemyState::EES_Patrolling;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
@@ -65,7 +61,10 @@ private:
 	double CombatRadius=1000.f;
 
 	UPROPERTY(EditAnywhere)
-	double AttackRadius=150.f;
+	double AttackRadius=200.f;
+
+	UPROPERTY(EditAnywhere)
+	double AcceptanceRadius=100.f;
 
 	UPROPERTY(EditInstanceOnly, Category="AI Navigation")
 	class AAIController* EnemyController;
@@ -90,16 +89,19 @@ private:
 	FTimerHandle AttackTimer;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
-	float AttackMin=0.5f;
+	float AttackMin=0.3f;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
-	float AttackMax=1.f;
+	float AttackMax=0.6f;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
 	float PatrollingSpeed=125.f;
 
 	UPROPERTY(EditAnywhere, Category=Combat)
 	float ChasingSpeed=300.f;
+
+	UPROPERTY(EditAnywhere, Category=Combat)
+	TSubclassOf<class ASoul> SoulClass;
 
 private:
 	void PatrolTimerFinished();
@@ -123,4 +125,5 @@ private:
 
 	void SpawnDefaultWeapon();
 	void InitializeEnemy();
+	void SpawnSoul();
 };

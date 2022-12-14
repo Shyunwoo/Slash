@@ -49,7 +49,7 @@ private:
 	float Damage=20.f;
 
 	UPROPERTY(EditAnywhere, Category="Weapon Properties")
-	FVector BoxTraceExtent=FVector(30.f,30.f,5.0f);
+	FVector BoxTraceExtent=FVector(24.f,24.f,5.0f);
 
 	UPROPERTY(EditAnywhere, Category="Weapon Properties")
 	bool bShowBoxDebug=false;

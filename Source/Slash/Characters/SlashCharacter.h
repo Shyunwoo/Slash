@@ -5,19 +5,25 @@
 #include "CoreMinimal.h"
 #include "BaseCharacter.h"
 #include "CharacterTypes.h"
+#include "Slash/Interfaces/PickupInterface.h"
 #include "SlashCharacter.generated.h"
 
 
 UCLASS()
-class SLASH_API ASlashCharacter : public ABaseCharacter
+class SLASH_API ASlashCharacter : public ABaseCharacter, public IPickupInterface
 {
 	GENERATED_BODY()
 
 public:
 	ASlashCharacter();
+	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetHit_Implementation(const FVector& ImpactPoint, AActor* Hitter) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)override;
+	virtual void Jump()override;
+	virtual void SetOverlappingItem(class AItem* Item)override;
+	virtual void AddSouls(class ASoul* Soul) override;
+	virtual void AddGold(class ATreasure* Treasure) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -29,9 +35,12 @@ protected:
 	void EKeyPressed();
 	virtual void Attack() override;
 	void EquipWeapon(class AWeapon* Weapon);
+	void Dodge();
 
 	virtual void AttackEnd() override;
+	virtual void DodgeEnd() override;
 	virtual bool CanAttack() override;
+	virtual void Die() override;
 
 	void PlayEquipMontage();
 	void PlayUnEquipMontage();
@@ -72,7 +81,17 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category=Montages)
 	UAnimMontage* UnEquipMontage;
+
+	UPROPERTY()
+	class USlashOverlay* SlashOverlay;
+
+	void InitializeSlashOverlay();
+	void SetHUDHealth();
+	bool IsUnoccupied();
+	bool IsOccupied();
+	bool HasEnoughStamina();
+
 public:
-	FORCEINLINE void SetOverlappingItem(AItem* Item){OverlappingItem=Item;}
 	FORCEINLINE ECharacterState GetCharacterState()const{return CharacterState;}
+	FORCEINLINE EActionState GetActionState() const {return ActionState;}
 };
